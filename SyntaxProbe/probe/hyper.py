@@ -77,9 +77,24 @@ class PoincareProbe(PoincareProbeBase):
             batch: a batch of word representations of the shape
                 (batch_size, max_seq_len, representation_dim)
         """
-        transformed = th.matmul(batch, self.proj)
-        transformed = self.ball.expmap0(transformed)
+        transformed = th.matmul(batch, self.proj)                                                           # 1st Linear Transformation
+        #
+        # FIRST TRANSFORMATION
+        #
+        #transformed = self.ball.expmap0(transformed)                                                        # Original Exponential
+        transformed_norm = transformed.norm(dim=-1, p=2, keepdim=True).clamp_min(1e-15)                     # Norm
+        #transformed = th.rsqrt(1 + th.square(transformed_norm)) * transformed                               # Gnomonic
+        transformed = th.reciprocal(1 + th.sqrt(1 + th.square(transformed_norm))) * transformed             # Hyperboloid
+        #
+        #SECOND TRANSFORMATION
+        #
         transformed = self.ball.mobius_matvec(self.trans, transformed)
+        #
+        #transformed = th.matmul(self.trans, transformed.unsqueeze(-1)).squeeze(-1)                          # 2nd Linear Transformation
+        #transformed_norm = transformed.norm(dim=-1, p=2, keepdim=True)                                      # 2nd Norm
+        #transformed = th.rsqrt(1 + th.square(transformed_norm)) * transformed                               # 2nd Gnomonic
+        #transformed = th.reciprocal(1 + th.sqrt(1 + th.square(transformed_norm))) * transformed             # 2nd Hyperboloid
+        #
         return transformed
 
 
